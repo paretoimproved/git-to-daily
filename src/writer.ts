@@ -10,6 +10,37 @@ import path from 'path'
 import type { Config } from './types.js'
 
 /**
+ * Gets the path to today's daily log file
+ *
+ * @param config - Configuration with vault path and project name
+ * @returns The full path to today's daily log file
+ */
+export function getDailyLogPath(config: Config): string {
+  const projectName = config.projectName || getProjectNameFromCwd()
+  const date = formatDate(new Date())
+  const dailyDir = path.join(config.vaultPath, '01-Projects', projectName, 'Daily')
+  return path.join(dailyDir, `${date}.md`)
+}
+
+/**
+ * Reads the existing daily log content if it exists
+ *
+ * @param config - Configuration with vault path and project name
+ * @returns The existing file content, or null if file doesn't exist
+ */
+export async function readExistingLog(config: Config): Promise<string | null> {
+  const filePath = getDailyLogPath(config)
+
+  try {
+    const content = await fs.readFile(filePath, 'utf-8')
+    return content
+  } catch {
+    // File doesn't exist or can't be read
+    return null
+  }
+}
+
+/**
  * Writes the daily log markdown to the Obsidian vault
  *
  * @param markdown - The markdown content to write

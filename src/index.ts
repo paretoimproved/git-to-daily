@@ -8,7 +8,8 @@
 import { Command } from 'commander'
 import { getTodaysCommits } from './git-parser.js'
 import { generateDailyLog } from './generator.js'
-import { writeToVault } from './writer.js'
+import { writeToVault, readExistingLog } from './writer.js'
+import { mergeCommits, extractCommitHashes } from './log-parser.js'
 import type { Config } from './types.js'
 
 const program = new Command()
@@ -34,15 +35,41 @@ program
       console.log('🔍 Fetching today\'s commits...')
 
       // Get commits from git parser (Agent 2's code)
-      const commits = await getTodaysCommits()
+      const localCommits = await getTodaysCommits()
 
-      if (commits.length === 0) {
-        console.log('📝 No commits found for today.')
-        console.log('💡 Make some commits and try again!')
-        process.exit(0)
+      // Read existing daily log if it exists
+      const existingContent = await readExistingLog(config)
+
+      // Check for new commits by comparing with existing log
+      let commits = localCommits
+      let newCommitCount = localCommits.length
+
+      if (existingContent) {
+        const existingHashes = extractCommitHashes(existingContent)
+
+        // Count how many local commits are new (not in existing log)
+        newCommitCount = localCommits.filter(
+          (c) => !existingHashes.has(c.hash.substring(0, 7))
+        ).length
+
+        if (newCommitCount === 0) {
+          console.log('📝 No new commits to add.')
+          console.log('💡 Daily log is already up to date!')
+          process.exit(0)
+        }
+
+        // Merge local commits with any commits from existing log
+        // (preserves commits from other machines)
+        commits = mergeCommits(localCommits, existingContent)
+        console.log(`✅ Found ${newCommitCount} new commit${newCommitCount > 1 ? 's' : ''} (${commits.length} total)`)
+      } else {
+        if (localCommits.length === 0) {
+          console.log('📝 No commits found for today.')
+          console.log('💡 Make some commits and try again!')
+          process.exit(0)
+        }
+        console.log(`✅ Found ${localCommits.length} commit${localCommits.length > 1 ? 's' : ''}`)
       }
-
-      console.log(`✅ Found ${commits.length} commit${commits.length > 1 ? 's' : ''}`)
 
       // Generate markdown (Agent 1's generator)
       console.log('📄 Generating daily log...')
@@ -52,7 +79,7 @@ program
       console.log('💾 Writing to vault...')
       const filePath = await writeToVault(markdown, config)
 
-      console.log(`✨ Daily log created: ${filePath}`)
+      console.log(`✨ Daily log ${existingContent ? 'updated' : 'created'}: ${filePath}`)
 
     } catch (error) {
       if (error instanceof Error) {

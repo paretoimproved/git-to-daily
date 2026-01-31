@@ -12,13 +12,17 @@ import type { Config } from './types.js'
 /**
  * Gets the path to today's daily log file
  *
+ * Output structure: {vault}/01-Projects/Daily/{project}/{date}.md
+ * This keeps daily logs in a centralized location that the vault repo can track,
+ * separate from project code which lives in its own git repos.
+ *
  * @param config - Configuration with vault path and project name
  * @returns The full path to today's daily log file
  */
 export function getDailyLogPath(config: Config): string {
   const projectName = config.projectName || getProjectNameFromCwd()
   const date = formatDate(new Date())
-  const dailyDir = path.join(config.vaultPath, '01-Projects', projectName, 'Daily')
+  const dailyDir = path.join(config.vaultPath, '01-Projects', 'Daily', projectName)
   return path.join(dailyDir, `${date}.md`)
 }
 
@@ -62,9 +66,10 @@ export async function writeToVault(markdown: string, config: Config): Promise<st
   // Determine project name (from config or current directory)
   const projectName = config.projectName || getProjectNameFromCwd()
 
-  // Build the output path: {vault}/01-Projects/{project}/Daily/{date}.md
+  // Build the output path: {vault}/01-Projects/Daily/{project}/{date}.md
+  // Centralized Daily folder allows vault repo to track logs separately from project code
   const date = formatDate(new Date())
-  const dailyDir = path.join(config.vaultPath, '01-Projects', projectName, 'Daily')
+  const dailyDir = path.join(config.vaultPath, '01-Projects', 'Daily', projectName)
   const filePath = path.join(dailyDir, `${date}.md`)
 
   // Create directories if they don't exist

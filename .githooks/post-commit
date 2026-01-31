@@ -3,28 +3,51 @@
 # Automatically generates a daily log entry after each commit
 #
 # Trigger Event: Runs after every successful git commit
-# Configuration: Requires GIT_TO_DAILY_VAULT environment variable
+# Configuration: Auto-detects vault if project is inside it, or uses GIT_TO_DAILY_VAULT env var
 
-# Exit early if GIT_TO_DAILY_VAULT is not set
-if [ -z "$GIT_TO_DAILY_VAULT" ]; then
-    # Silent exit - don't interrupt commit workflow if not configured
+# Get the repository root
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Function to find vault by traversing up looking for .obsidian folder
+find_vault() {
+    local dir="$1"
+    while [ "$dir" != "/" ] && [ "$dir" != "" ]; do
+        if [ -d "$dir/.obsidian" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
+
+# Try to auto-detect vault path
+VAULT_PATH=$(find_vault "$REPO_ROOT")
+
+# Fall back to environment variable if auto-detect fails
+if [ -z "$VAULT_PATH" ]; then
+    VAULT_PATH="$GIT_TO_DAILY_VAULT"
+fi
+
+# Exit silently if no vault found
+if [ -z "$VAULT_PATH" ]; then
     exit 0
 fi
 
 # Get the project name from the repository root directory
-PROJECT_NAME=$(basename "$(git rev-parse --show-toplevel)")
+PROJECT_NAME=$(basename "$REPO_ROOT")
 
 # Find and run the git-to-daily executable
 # Priority: 1) Global install, 2) Local node_modules, 3) Direct from dist
 if command -v git-to-daily >/dev/null 2>&1; then
-    git-to-daily generate --vault "$GIT_TO_DAILY_VAULT" --project "$PROJECT_NAME"
-elif [ -f "$(git rev-parse --show-toplevel)/node_modules/.bin/git-to-daily" ]; then
-    "$(git rev-parse --show-toplevel)/node_modules/.bin/git-to-daily" generate --vault "$GIT_TO_DAILY_VAULT" --project "$PROJECT_NAME"
+    git-to-daily generate --vault "$VAULT_PATH" --project "$PROJECT_NAME"
+elif [ -f "$REPO_ROOT/node_modules/.bin/git-to-daily" ]; then
+    "$REPO_ROOT/node_modules/.bin/git-to-daily" generate --vault "$VAULT_PATH" --project "$PROJECT_NAME"
 else
-    # Fallback: Run directly from this project's dist if available
-    REPO_ROOT="$(git rev-parse --show-toplevel)"
-    if [ -f "$REPO_ROOT/dist/index.js" ]; then
-        node "$REPO_ROOT/dist/index.js" generate --vault "$GIT_TO_DAILY_VAULT" --project "$PROJECT_NAME"
+    # Fallback: Run directly from git-to-daily dist if available in vault
+    GIT_TO_DAILY_PATH="$VAULT_PATH/01-Projects/git-to-daily/dist/index.js"
+    if [ -f "$GIT_TO_DAILY_PATH" ]; then
+        node "$GIT_TO_DAILY_PATH" generate --vault "$VAULT_PATH" --project "$PROJECT_NAME"
     fi
 fi
 

@@ -175,16 +175,20 @@ git config core.hooksPath /path/to/git-to-daily/.githooks
 
 ### Configuration
 
-Set the `GIT_TO_DAILY_VAULT` environment variable to your Obsidian vault path:
+**Auto-detection (recommended)**: If your project is inside your Obsidian vault, the hook automatically detects the vault by looking for the `.obsidian` folder. No configuration needed!
+
+```
+YourVault/              ← Auto-detected as vault (has .obsidian/)
+├── .obsidian/
+└── 01-Projects/
+    └── my-project/     ← Hook finds vault automatically
+```
+
+**Manual configuration**: For projects outside your vault, set the `GIT_TO_DAILY_VAULT` environment variable:
 
 **Windows (PowerShell - permanent):**
 ```powershell
 [System.Environment]::SetEnvironmentVariable('GIT_TO_DAILY_VAULT', 'C:\Users\YourName\Documents\Obsidian', 'User')
-```
-
-**Windows (cmd - current session):**
-```cmd
-set GIT_TO_DAILY_VAULT=C:\Users\YourName\Documents\Obsidian
 ```
 
 **macOS/Linux (add to ~/.bashrc or ~/.zshrc):**

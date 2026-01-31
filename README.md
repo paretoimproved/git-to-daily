@@ -11,18 +11,6 @@
 ## Overview
 Automatically generate daily log entries by parsing git commits and file changes. Saves developers time and ensures daily logs stay up-to-date.
 
-## Current Sprint/Milestone
-**Current Focus**: MVP - Basic functionality
-
-**Goals**:
-- [ ] Parse git commits from today
-- [ ] Extract file changes and commit messages
-- [ ] Generate markdown in Daily Log format
-- [ ] Write to Obsidian vault
-- [ ] Basic CLI with `git-to-daily generate` command
-
-**Target Date**: Today (MVP in one session)
-
 ## Quick Links
 - [[Architecture]] - System design
 - [[Context]] - Current working memory

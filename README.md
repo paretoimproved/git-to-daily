@@ -12,10 +12,9 @@
 Automatically generate daily log entries by parsing git commits and file changes. Saves developers time and ensures daily logs stay up-to-date.
 
 ## Quick Links
-- [[Architecture]] - System design
-- [[Context]] - Current working memory
-- [[Decisions]] - Architecture Decision Records
-- [[Feature-Plan]] - Detailed feature breakdown
+- [Architecture](Architecture.md) - System design
+- [Context](Context.md) - Current working memory
+- [Feature-Plan](Feature-Plan.md) - Detailed feature breakdown
 
 ## Multi-Agent Plan
 

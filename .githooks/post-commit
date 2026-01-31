@@ -3,13 +3,16 @@
 # Automatically generates a daily log entry after each commit
 #
 # Trigger Event: Runs after every successful git commit
-# Configuration: Auto-detects vault if project is inside it, or uses GIT_TO_DAILY_VAULT env var
+# Configuration: Auto-detects vault by checking:
+#   1. Parent directories for .obsidian folder (project inside vault)
+#   2. Sibling directories for .obsidian folder (project alongside vault)
+#   3. GIT_TO_DAILY_VAULT environment variable (fallback)
 
 # Get the repository root
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # Function to find vault by traversing up looking for .obsidian folder
-find_vault() {
+find_vault_in_parents() {
     local dir="$1"
     while [ "$dir" != "/" ] && [ "$dir" != "" ]; do
         if [ -d "$dir/.obsidian" ]; then
@@ -21,8 +24,26 @@ find_vault() {
     return 1
 }
 
+# Function to find vault in sibling directories
+find_vault_in_siblings() {
+    local parent_dir="$(dirname "$1")"
+    for sibling in "$parent_dir"/*; do
+        if [ -d "$sibling/.obsidian" ]; then
+            echo "$sibling"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Try to auto-detect vault path
-VAULT_PATH=$(find_vault "$REPO_ROOT")
+# 1. Check if project is inside a vault (parent directories)
+VAULT_PATH=$(find_vault_in_parents "$REPO_ROOT")
+
+# 2. Check sibling directories for a vault
+if [ -z "$VAULT_PATH" ]; then
+    VAULT_PATH=$(find_vault_in_siblings "$REPO_ROOT")
+fi
 
 # Fall back to environment variable if auto-detect fails
 if [ -z "$VAULT_PATH" ]; then

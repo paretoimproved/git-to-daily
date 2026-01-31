@@ -195,6 +195,49 @@ YourVault/              ← Auto-detected as vault (has .obsidian/)
 export GIT_TO_DAILY_VAULT="$HOME/Documents/Obsidian"
 ```
 
+### Recommended Project Structure
+
+For the best workflow, especially when syncing notes across machines, we recommend separating code and planning docs:
+
+```
+~/
+├── DevVault/                          ← Obsidian vault (syncs via git)
+│   └── 01-Projects/
+│       └── my-project/                ← Planning docs only
+│           ├── Context.md
+│           ├── Feature-Plan.md
+│           └── Daily/                 ← git-to-daily writes here
+│
+└── Projects/                          ← Code repositories
+    └── my-project/                    ← Has own git repo
+        ├── src/
+        ├── tests/
+        ├── docs/ → DevVault link      ← Symlink to planning docs
+        └── CLAUDE.md
+```
+
+**Benefits:**
+- Planning docs sync across machines via DevVault
+- Code repos are self-contained with their own git history
+- Daily logs auto-sync (git-to-daily writes to DevVault)
+- Claude Code can access docs via the symlink
+
+**Setup (one-time per project):**
+
+```bash
+# Windows (use junction)
+mklink /J "C:\Users\you\Projects\my-project\docs" "C:\Users\you\DevVault\01-Projects\my-project"
+
+# macOS/Linux (use symlink)
+ln -s ~/DevVault/01-Projects/my-project ~/Projects/my-project/docs
+```
+
+**Add to your project's .gitignore:**
+```gitignore
+# Docs symlink (tracked separately in DevVault)
+docs/
+```
+
 ### Disabling the Hook
 
 **Temporarily** (unset the environment variable):

@@ -140,6 +140,71 @@ See [examples/sample-daily-log.md](examples/sample-daily-log.md) for a complete 
 4. ✅ Write to Obsidian vault path
 5. ✅ Basic error handling
 
+## Git Hook Integration
+
+git-to-daily can automatically generate daily logs after each commit using a post-commit hook.
+
+### How It Works
+
+**Trigger Event**: The hook runs after every successful `git commit` command.
+
+When triggered, it:
+1. Detects the project name from the repository directory
+2. Runs `git-to-daily generate` with your configured vault path
+3. Creates/updates the daily log file in your Obsidian vault
+
+### Installation
+
+#### Automatic (for this repository)
+Hooks are automatically installed when you run `npm install` (via the `prepare` script).
+
+#### Manual Setup
+```bash
+npm run hooks:install
+```
+
+#### For Other Repositories
+```bash
+# Option 1: Copy the hook to your target repository
+cp .githooks/post-commit /path/to/other-repo/.git/hooks/post-commit
+chmod +x /path/to/other-repo/.git/hooks/post-commit
+
+# Option 2: Use core.hooksPath to point to a shared hooks directory
+git config core.hooksPath /path/to/git-to-daily/.githooks
+```
+
+### Configuration
+
+Set the `GIT_TO_DAILY_VAULT` environment variable to your Obsidian vault path:
+
+**Windows (PowerShell - permanent):**
+```powershell
+[System.Environment]::SetEnvironmentVariable('GIT_TO_DAILY_VAULT', 'C:\Users\YourName\Documents\Obsidian', 'User')
+```
+
+**Windows (cmd - current session):**
+```cmd
+set GIT_TO_DAILY_VAULT=C:\Users\YourName\Documents\Obsidian
+```
+
+**macOS/Linux (add to ~/.bashrc or ~/.zshrc):**
+```bash
+export GIT_TO_DAILY_VAULT="$HOME/Documents/Obsidian"
+```
+
+### Disabling the Hook
+
+**Temporarily** (unset the environment variable):
+```bash
+unset GIT_TO_DAILY_VAULT   # macOS/Linux
+set GIT_TO_DAILY_VAULT=    # Windows cmd
+```
+
+**Permanently** (remove hook configuration):
+```bash
+git config --unset core.hooksPath
+```
+
 ## Future Enhancements (Post-MVP)
 - Date range support (`--since`, `--until`)
 - Filter by author

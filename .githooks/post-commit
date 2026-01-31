@@ -1,0 +1,32 @@
+#!/bin/sh
+# git-to-daily post-commit hook
+# Automatically generates a daily log entry after each commit
+#
+# Trigger Event: Runs after every successful git commit
+# Configuration: Requires GIT_TO_DAILY_VAULT environment variable
+
+# Exit early if GIT_TO_DAILY_VAULT is not set
+if [ -z "$GIT_TO_DAILY_VAULT" ]; then
+    # Silent exit - don't interrupt commit workflow if not configured
+    exit 0
+fi
+
+# Get the project name from the repository root directory
+PROJECT_NAME=$(basename "$(git rev-parse --show-toplevel)")
+
+# Find and run the git-to-daily executable
+# Priority: 1) Global install, 2) Local node_modules, 3) Direct from dist
+if command -v git-to-daily >/dev/null 2>&1; then
+    git-to-daily generate --vault "$GIT_TO_DAILY_VAULT" --project "$PROJECT_NAME"
+elif [ -f "$(git rev-parse --show-toplevel)/node_modules/.bin/git-to-daily" ]; then
+    "$(git rev-parse --show-toplevel)/node_modules/.bin/git-to-daily" generate --vault "$GIT_TO_DAILY_VAULT" --project "$PROJECT_NAME"
+else
+    # Fallback: Run directly from this project's dist if available
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    if [ -f "$REPO_ROOT/dist/index.js" ]; then
+        node "$REPO_ROOT/dist/index.js" generate --vault "$GIT_TO_DAILY_VAULT" --project "$PROJECT_NAME"
+    fi
+fi
+
+# Always exit 0 - never block commits due to daily log failures
+exit 0

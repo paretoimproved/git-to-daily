@@ -11,7 +11,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
-    "test": "vitest"
+    "test": "vitest",
+    "prepare": "git config core.hooksPath .githooks",
+    "hooks:install": "git config core.hooksPath .githooks && echo Hooks installed! Set GIT_TO_DAILY_VAULT environment variable to enable."
   },
   "keywords": [
     "git",

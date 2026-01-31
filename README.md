@@ -209,12 +209,73 @@ set GIT_TO_DAILY_VAULT=    # Windows cmd
 git config --unset core.hooksPath
 ```
 
+## Weekly & Monthly Summaries
+
+git-to-daily automatically generates weekly and monthly summary logs when calendar periods change.
+
+### How It Works
+
+**Weekly Summaries** (triggered on Mondays):
+- When you make a commit on a Monday, the tool checks if the previous week (Mon-Sun) has at least 2 days with activity
+- If so, it generates a weekly summary aggregating all daily logs from that week
+- Output: `{vault}/01-Projects/Weekly/{project}/{YYYY-Www}.md`
+
+**Monthly Summaries** (triggered on the 1st):
+- When you make a commit on the 1st of a month, the tool checks if the previous month has at least 2 days with activity
+- If so, it generates a monthly summary aggregating all daily logs from that month
+- Output: `{vault}/01-Projects/Monthly/{project}/{YYYY-MM}.md`
+
+### What Gets Generated
+
+**Weekly Summary includes:**
+- Total commits and files changed for the week
+- Active days count (e.g., 5/7)
+- Focus areas breakdown (Feature development, Bug fixes, etc.)
+- Daily breakdown table
+- Highlights (top commit messages)
+
+**Monthly Summary includes:**
+- Total commits and files changed for the month
+- Active days count
+- Weekly breakdown within the month
+- Focus areas breakdown
+- Daily breakdown table
+- Highlights (top 15 commit messages)
+
+### Example Weekly Log
+```markdown
+# Weekly Log - 2026-W05 (Jan 26 - Feb 1, 2026)
+
+## Summary
+- **Total Commits**: 23
+- **Total Files Changed**: 47
+- **Active Days**: 5/7
+
+## Focus Areas
+- Feature development: 12 commits
+- Bug fixes: 6 commits
+- Refactoring: 5 commits
+
+## Daily Breakdown
+| Date | Day | Commits | Focus |
+|------|-----|---------|-------|
+| Jan 26 | Mon | 5 | Feature development |
+| Jan 27 | Tue | 4 | Bug fixes |
+...
+```
+
+### Notes
+- Summaries are only generated once per period (won't overwrite existing)
+- Requires at least 2 active days to generate (avoids sparse summaries)
+- Integrates seamlessly with the post-commit hook
+
 ## Future Enhancements (Post-MVP)
 - Date range support (`--since`, `--until`)
 - Filter by author
 - Custom template support
-- Append vs overwrite modes
-- Smart categorization of changes
+- Configuration file support (`.git-to-daily.json`)
+- npm package publishing
+- Smart categorization of changes (auto-categorize by commit type)
 
 ## Troubleshooting
 
@@ -290,13 +351,19 @@ git-to-daily/
 ├── src/
 │   ├── index.ts           # CLI entry point
 │   ├── git-parser.ts      # Git operations
-│   ├── generator.ts       # Markdown generation
+│   ├── generator.ts       # Daily log markdown generation
+│   ├── summary-generator.ts # Weekly/monthly summary generation
 │   ├── writer.ts          # File writing
+│   ├── log-parser.ts      # Parse existing daily logs
+│   ├── daily-log-reader.ts # Read daily logs for aggregation
+│   ├── period-utils.ts    # Date/period utilities
 │   └── types.ts           # TypeScript types
 ├── tests/
 │   ├── git-parser.test.ts # Git parser tests
 │   ├── generator.test.ts  # Generator tests
 │   ├── writer.test.ts     # Writer tests
+│   ├── period-utils.test.ts # Period utilities tests
+│   ├── summary-generator.test.ts # Summary generator tests
 │   └── integration.test.ts # End-to-end tests
 ├── examples/
 │   └── sample-daily-log.md # Example output

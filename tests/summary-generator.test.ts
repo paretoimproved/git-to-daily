@@ -1,0 +1,176 @@
+import { describe, it, expect } from 'vitest'
+import type { DailySummary } from '../src/types.js'
+import {
+  buildWeeklyLogData,
+  buildMonthlyLogData,
+  generateWeeklyLog,
+  generateMonthlyLog,
+} from '../src/summary-generator.js'
+
+// Helper to create local dates without timezone issues
+function localDate(year: number, month: number, day: number): Date {
+  return new Date(year, month - 1, day, 12, 0, 0) // noon to avoid DST issues
+}
+
+describe('summary-generator', () => {
+  const mockDailySummaries: DailySummary[] = [
+    {
+      date: '2026-01-26',
+      commitCount: 5,
+      filesChanged: 10,
+      focusArea: 'Feature development',
+      commitMessages: ['feat: add auth', 'feat: add login form', 'feat: add signup', 'refactor: cleanup', 'test: add tests'],
+    },
+    {
+      date: '2026-01-27',
+      commitCount: 3,
+      filesChanged: 6,
+      focusArea: 'Bug fixes',
+      commitMessages: ['fix: login bug', 'fix: validation', 'docs: update readme'],
+    },
+    {
+      date: '2026-01-28',
+      commitCount: 2,
+      filesChanged: 4,
+      focusArea: 'Refactoring',
+      commitMessages: ['refactor: extract utils', 'refactor: simplify code'],
+    },
+  ]
+
+  describe('buildWeeklyLogData', () => {
+    it('should build weekly log data from daily summaries', () => {
+      const weekStart = localDate(2026, 1, 26) // Monday Jan 26
+      const weekEnd = localDate(2026, 2, 1)   // Sunday Feb 1
+
+      const result = buildWeeklyLogData(mockDailySummaries, weekStart, weekEnd)
+
+      expect(result.weekId).toBe('2026-W05')
+      expect(result.startDate).toBe('2026-01-26')
+      expect(result.endDate).toBe('2026-02-01')
+      expect(result.totalCommits).toBe(10)
+      expect(result.totalFilesChanged).toBe(20)
+      expect(result.activeDays).toBe(3)
+      expect(result.dailySummaries).toEqual(mockDailySummaries)
+    })
+  })
+
+  describe('buildMonthlyLogData', () => {
+    it('should build monthly log data from daily summaries', () => {
+      const monthDate = localDate(2026, 1, 1)
+
+      const result = buildMonthlyLogData(mockDailySummaries, monthDate)
+
+      expect(result.monthId).toBe('2026-01')
+      expect(result.monthName).toBe('January 2026')
+      expect(result.totalCommits).toBe(10)
+      expect(result.totalFilesChanged).toBe(20)
+      expect(result.activeDays).toBe(3)
+      expect(result.weeklyBreakdown.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('generateWeeklyLog', () => {
+    it('should generate markdown with header', () => {
+      const weekStart = localDate(2026, 1, 26)
+      const weekEnd = localDate(2026, 2, 1)
+      const data = buildWeeklyLogData(mockDailySummaries, weekStart, weekEnd)
+
+      const result = generateWeeklyLog(data)
+
+      expect(result).toContain('# Weekly Log - 2026-W05')
+      expect(result).toContain('Jan 26 - Feb 1, 2026')
+    })
+
+    it('should include summary section', () => {
+      const weekStart = localDate(2026, 1, 26)
+      const weekEnd = localDate(2026, 2, 1)
+      const data = buildWeeklyLogData(mockDailySummaries, weekStart, weekEnd)
+
+      const result = generateWeeklyLog(data)
+
+      expect(result).toContain('## Summary')
+      expect(result).toContain('**Total Commits**: 10')
+      expect(result).toContain('**Total Files Changed**: 20')
+      expect(result).toContain('**Active Days**: 3/7')
+    })
+
+    it('should include focus areas section', () => {
+      const weekStart = localDate(2026, 1, 26)
+      const weekEnd = localDate(2026, 2, 1)
+      const data = buildWeeklyLogData(mockDailySummaries, weekStart, weekEnd)
+
+      const result = generateWeeklyLog(data)
+
+      expect(result).toContain('## Focus Areas')
+      expect(result).toContain('Feature development')
+      expect(result).toContain('Bug fixes')
+      expect(result).toContain('Refactoring')
+    })
+
+    it('should include daily breakdown table', () => {
+      const weekStart = localDate(2026, 1, 26)
+      const weekEnd = localDate(2026, 2, 1)
+      const data = buildWeeklyLogData(mockDailySummaries, weekStart, weekEnd)
+
+      const result = generateWeeklyLog(data)
+
+      expect(result).toContain('## Daily Breakdown')
+      expect(result).toContain('| Date | Day | Commits | Focus |')
+    })
+
+    it('should include highlights section', () => {
+      const weekStart = localDate(2026, 1, 26)
+      const weekEnd = localDate(2026, 2, 1)
+      const data = buildWeeklyLogData(mockDailySummaries, weekStart, weekEnd)
+
+      const result = generateWeeklyLog(data)
+
+      expect(result).toContain('## Highlights')
+      expect(result).toContain('✅ feat: add auth')
+    })
+
+    it('should include footer', () => {
+      const weekStart = localDate(2026, 1, 26)
+      const weekEnd = localDate(2026, 2, 1)
+      const data = buildWeeklyLogData(mockDailySummaries, weekStart, weekEnd)
+
+      const result = generateWeeklyLog(data)
+
+      expect(result).toContain('## Generated by git-to-daily')
+      expect(result).toContain('This summary was automatically generated from daily logs.')
+    })
+  })
+
+  describe('generateMonthlyLog', () => {
+    it('should generate markdown with header', () => {
+      const monthDate = localDate(2026, 1, 1)
+      const data = buildMonthlyLogData(mockDailySummaries, monthDate)
+
+      const result = generateMonthlyLog(data)
+
+      expect(result).toContain('# Monthly Log - January 2026')
+    })
+
+    it('should include summary section with month-specific stats', () => {
+      const monthDate = localDate(2026, 1, 1)
+      const data = buildMonthlyLogData(mockDailySummaries, monthDate)
+
+      const result = generateMonthlyLog(data)
+
+      expect(result).toContain('## Summary')
+      expect(result).toContain('**Total Commits**: 10')
+      expect(result).toContain('**Active Days**: 3/31')
+      expect(result).toContain('**Weeks Active**:')
+    })
+
+    it('should include weekly breakdown table', () => {
+      const monthDate = localDate(2026, 1, 1)
+      const data = buildMonthlyLogData(mockDailySummaries, monthDate)
+
+      const result = generateMonthlyLog(data)
+
+      expect(result).toContain('## Weekly Breakdown')
+      expect(result).toContain('| Week | Commits |')
+    })
+  })
+})

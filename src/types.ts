@@ -57,3 +57,75 @@ export interface Config {
   /** Optional project name for better log organization */
   projectName?: string
 }
+
+/**
+ * Aggregated data for a daily log (used in weekly/monthly summaries)
+ */
+export interface DailySummary {
+  /** Date string (YYYY-MM-DD format) */
+  date: string
+
+  /** Number of commits that day */
+  commitCount: number
+
+  /** Number of files changed that day */
+  filesChanged: number
+
+  /** Inferred focus area for the day */
+  focusArea: string
+
+  /** List of commit messages */
+  commitMessages: string[]
+}
+
+/**
+ * Weekly log data structure for markdown generation
+ */
+export interface WeeklyLogData {
+  /** ISO week string (YYYY-Www format) */
+  weekId: string
+
+  /** Start date of the week (Monday) */
+  startDate: string
+
+  /** End date of the week (Sunday) */
+  endDate: string
+
+  /** Daily summaries for each day with activity */
+  dailySummaries: DailySummary[]
+
+  /** Total commits for the week */
+  totalCommits: number
+
+  /** Total files changed for the week */
+  totalFilesChanged: number
+
+  /** Number of active days (days with commits) */
+  activeDays: number
+}
+
+/**
+ * Monthly log data structure for markdown generation
+ */
+export interface MonthlyLogData {
+  /** Month string (YYYY-MM format) */
+  monthId: string
+
+  /** Human-readable month name (e.g., "January 2026") */
+  monthName: string
+
+  /** Daily summaries for each day with activity */
+  dailySummaries: DailySummary[]
+
+  /** Total commits for the month */
+  totalCommits: number
+
+  /** Total files changed for the month */
+  totalFilesChanged: number
+
+  /** Number of active days (days with commits) */
+  activeDays: number
+
+  /** Weekly breakdown within the month */
+  weeklyBreakdown: { weekNumber: number; commits: number }[]
+}

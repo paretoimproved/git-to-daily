@@ -1,13 +1,14 @@
 /**
  * File Writer Module
  *
- * Handles writing daily logs to the Obsidian vault.
+ * Handles writing daily, weekly, and monthly logs to the Obsidian vault.
  * Created by Agent 1.
  */
 
 import { promises as fs } from 'fs'
 import path from 'path'
 import type { Config } from './types.js'
+import { formatWeekId, formatMonthId } from './period-utils.js'
 
 /**
  * Gets the path to today's daily log file
@@ -107,4 +108,116 @@ function getProjectNameFromCwd(): string {
  */
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0]
+}
+
+/**
+ * Gets the path to a weekly log file
+ *
+ * Output structure: {vault}/01-Projects/Weekly/{project}/{YYYY-Www}.md
+ *
+ * @param config - Configuration with vault path and project name
+ * @param weekStart - Any date within the target week
+ * @returns The full path to the weekly log file
+ */
+export function getWeeklyLogPath(config: Config, weekStart: Date): string {
+  const projectName = config.projectName || getProjectNameFromCwd()
+  const weekId = formatWeekId(weekStart)
+  const weeklyDir = path.join(config.vaultPath, '01-Projects', 'Weekly', projectName)
+  return path.join(weeklyDir, `${weekId}.md`)
+}
+
+/**
+ * Gets the path to a monthly log file
+ *
+ * Output structure: {vault}/01-Projects/Monthly/{project}/{YYYY-MM}.md
+ *
+ * @param config - Configuration with vault path and project name
+ * @param monthDate - Any date within the target month
+ * @returns The full path to the monthly log file
+ */
+export function getMonthlyLogPath(config: Config, monthDate: Date): string {
+  const projectName = config.projectName || getProjectNameFromCwd()
+  const monthId = formatMonthId(monthDate)
+  const monthlyDir = path.join(config.vaultPath, '01-Projects', 'Monthly', projectName)
+  return path.join(monthlyDir, `${monthId}.md`)
+}
+
+/**
+ * Checks if a weekly log already exists
+ */
+export async function weeklyLogExists(config: Config, weekStart: Date): Promise<boolean> {
+  const filePath = getWeeklyLogPath(config, weekStart)
+  try {
+    await fs.access(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Checks if a monthly log already exists
+ */
+export async function monthlyLogExists(config: Config, monthDate: Date): Promise<boolean> {
+  const filePath = getMonthlyLogPath(config, monthDate)
+  try {
+    await fs.access(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Writes a weekly log to the vault
+ *
+ * @param markdown - The markdown content to write
+ * @param config - Configuration with vault path and project name
+ * @param weekStart - Any date within the target week
+ * @returns The full path to the created file
+ */
+export async function writeWeeklyLog(
+  markdown: string,
+  config: Config,
+  weekStart: Date
+): Promise<string> {
+  const projectName = config.projectName || getProjectNameFromCwd()
+  const weekId = formatWeekId(weekStart)
+  const weeklyDir = path.join(config.vaultPath, '01-Projects', 'Weekly', projectName)
+  const filePath = path.join(weeklyDir, `${weekId}.md`)
+
+  // Create directories if they don't exist
+  await fs.mkdir(weeklyDir, { recursive: true })
+
+  // Write the markdown file
+  await fs.writeFile(filePath, markdown, 'utf-8')
+
+  return filePath
+}
+
+/**
+ * Writes a monthly log to the vault
+ *
+ * @param markdown - The markdown content to write
+ * @param config - Configuration with vault path and project name
+ * @param monthDate - Any date within the target month
+ * @returns The full path to the created file
+ */
+export async function writeMonthlyLog(
+  markdown: string,
+  config: Config,
+  monthDate: Date
+): Promise<string> {
+  const projectName = config.projectName || getProjectNameFromCwd()
+  const monthId = formatMonthId(monthDate)
+  const monthlyDir = path.join(config.vaultPath, '01-Projects', 'Monthly', projectName)
+  const filePath = path.join(monthlyDir, `${monthId}.md`)
+
+  // Create directories if they don't exist
+  await fs.mkdir(monthlyDir, { recursive: true })
+
+  // Write the markdown file
+  await fs.writeFile(filePath, markdown, 'utf-8')
+
+  return filePath
 }

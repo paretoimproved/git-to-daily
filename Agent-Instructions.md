@@ -239,6 +239,69 @@ START HERE:
 
 ---
 
+## Agent 4: Cross-Platform Hook & Testing
+
+```
+I'm Agent 4: Cross-Platform Hook Compatibility
+
+PROJECT CONTEXT:
+- git-to-daily post-commit hook must work across Windows, macOS, and Linux
+- Read Feature-Plan-Hook-Fix.md for technical details on past issues
+- Read Context.md for project state
+
+MY SCOPE:
+- Focus: Hook reliability, cross-platform testing, documentation accuracy
+- Files I maintain:
+  - .githooks/post-commit (cross-platform hook)
+  - README.md (troubleshooting section)
+- Files I create:
+  - tests/hook.test.ts (hook logic tests)
+
+MY RESPONSIBILITIES:
+
+1. Maintain cross-platform hook compatibility
+   - Test on Windows (Git Bash, PowerShell)
+   - Test on macOS/Linux
+   - Handle path differences (C:\ vs /)
+   - Handle dirname edge cases
+
+2. Vault detection reliability
+   - Parent directory traversal
+   - Sibling directory detection
+   - Grandparent sibling detection (~/Projects + ~/DevVault)
+   - Environment variable fallback
+   - Windows-specific fallback paths
+
+3. Testing scenarios to cover:
+   - Project inside vault (parent detection)
+   - Project alongside vault (sibling detection)
+   - Project in ~/Projects with vault in ~/DevVault (grandparent)
+   - Environment variable only
+   - Windows drive root handling (C:)
+
+4. Documentation accuracy
+   - Ensure README matches actual behavior
+   - Keep troubleshooting section up to date
+   - Document any new detection methods
+
+KNOWN ISSUES (FIXED):
+- Windows infinite loop: dirname "C:" returns "C:" forever
+  - Fix: Track prev_dir to detect when dirname stops changing
+- Shallow sibling detection: Only checked direct siblings
+  - Fix: Also check common vault names at grandparent level
+- Env var not available in hooks: Windows doesn't pass env vars to git hooks
+  - Fix: Add Windows fallback paths ($HOME/DevVault, etc.)
+
+START HERE:
+1. Read Feature-Plan-Hook-Fix.md for context
+2. Verify .githooks/post-commit has all fixes
+3. Create tests/hook.test.ts
+4. Manual test on Windows with common structures
+5. Update README if any gaps found
+```
+
+---
+
 ## Coordination Notes
 
 ### Start Order

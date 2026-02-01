@@ -163,27 +163,83 @@ npm run hooks:install
 ```
 
 #### For Other Repositories
+
+**Option 1: Global Hooks (Recommended)**
+
+Set up global hooks so ALL git repositories automatically generate daily logs:
+
 ```bash
-# Option 1: Copy the hook to your target repository
+# Create a global hooks directory
+mkdir -p ~/.git-hooks
+
+# Copy the post-commit hook
+cp .githooks/post-commit ~/.git-hooks/
+chmod +x ~/.git-hooks/post-commit
+
+# Set globally for all repos
+git config --global core.hooksPath ~/.git-hooks
+```
+
+Now every `git commit` in any repository will trigger git-to-daily (if it can find your vault).
+
+**To disable for a specific repo:**
+```bash
+cd /path/to/repo
+git config core.hooksPath .git/hooks  # Use default local hooks
+```
+
+**To remove global hooks entirely:**
+```bash
+git config --global --unset core.hooksPath
+```
+
+**Option 2: Per-Repository Setup**
+
+If you prefer to enable git-to-daily only for specific repos:
+
+```bash
+# Copy the hook to your target repository
 cp .githooks/post-commit /path/to/other-repo/.git/hooks/post-commit
 chmod +x /path/to/other-repo/.git/hooks/post-commit
 
-# Option 2: Use core.hooksPath to point to a shared hooks directory
+# Or point to a shared hooks directory
 git config core.hooksPath /path/to/git-to-daily/.githooks
 ```
 
 ### Configuration
 
-**Auto-detection (recommended)**: If your project is inside your Obsidian vault, the hook automatically detects the vault by looking for the `.obsidian` folder. No configuration needed!
+**Auto-detection (recommended)**: The hook automatically detects your Obsidian vault using this priority order:
+
+1. **Parent directories** - Walks up from your repo looking for `.obsidian/`
+2. **Sibling directories** - Checks folders alongside your repo for `.obsidian/`
+3. **Grandparent siblings** - Checks common vault names (`DevVault`, `Vault`, `ObsidianVault`, `Notes`) at grandparent level
+4. **Environment variable** - Falls back to `GIT_TO_DAILY_VAULT`
+5. **Windows fallbacks** - Checks `$HOME/DevVault` and similar common locations
+
+**Example structures that work automatically:**
 
 ```
-YourVault/              ← Auto-detected as vault (has .obsidian/)
+# Structure 1: Project inside vault
+YourVault/              ← Auto-detected (parent has .obsidian/)
 ├── .obsidian/
 └── 01-Projects/
     └── my-project/     ← Hook finds vault automatically
+
+# Structure 2: Project alongside vault
+~/code/
+├── DevVault/           ← Auto-detected (sibling has .obsidian/)
+│   └── .obsidian/
+└── my-project/         ← Hook finds vault automatically
+
+# Structure 3: Common ~/Projects + ~/DevVault setup
+~/
+├── DevVault/           ← Auto-detected (grandparent sibling)
+│   └── .obsidian/
+└── Projects/
+    └── my-project/     ← Hook finds vault automatically
 ```
 
-**Manual configuration**: For projects outside your vault, set the `GIT_TO_DAILY_VAULT` environment variable:
+**Manual configuration**: If auto-detection doesn't work, set the `GIT_TO_DAILY_VAULT` environment variable:
 
 **Windows (PowerShell - permanent):**
 ```powershell
@@ -362,6 +418,58 @@ ls -la /path/to/vault
 
 # Fix permissions if needed
 chmod 755 /path/to/vault
+```
+
+### Post-commit hook doesn't trigger / Daily log not updating
+**Problem**: You're making commits but daily logs aren't being created.
+
+**Solution**: Debug the hook step by step:
+
+1. **Verify hook is installed:**
+   ```bash
+   # Check if using global hooks
+   git config --get core.hooksPath
+
+   # Verify hook exists and is executable
+   ls -la ~/.git-hooks/post-commit  # or your hooks path
+   ```
+
+2. **Enable debug logging:**
+   Add these lines to the top of your post-commit hook (after `#!/bin/sh`):
+   ```sh
+   DEBUG_LOG="$HOME/hook-debug.log"
+   echo "=== POST-COMMIT $(date) ===" >> "$DEBUG_LOG"
+   echo "REPO_ROOT: $REPO_ROOT" >> "$DEBUG_LOG"
+   # Add more echo statements to trace execution
+   ```
+
+3. **Check the debug log after a commit:**
+   ```bash
+   cat ~/hook-debug.log
+   ```
+
+4. **Common issues:**
+   - **Vault not found**: Verify your vault has a `.obsidian/` folder
+   - **Wrong structure**: Ensure your project structure matches one of the supported layouts
+   - **git-to-daily not found**: Install globally with `npm link` or ensure dist/index.js exists
+
+### Hook hangs or takes forever (Windows)
+**Problem**: On Windows, the hook seems to hang after a commit.
+
+**Solution**: This was a bug in older versions where `dirname "C:"` returns `C:` causing an infinite loop. Update your hook:
+```bash
+# Get the latest hook
+cp /path/to/git-to-daily/.githooks/post-commit ~/.git-hooks/post-commit
+```
+
+Or manually update `find_vault_in_parents()` to include:
+```sh
+local prev_dir=""
+while [ "$dir" != "/" ] && [ "$dir" != "" ] && [ "$dir" != "$prev_dir" ]; do
+    # ... existing code ...
+    prev_dir="$dir"
+    dir="$(dirname "$dir")"
+done
 ```
 
 ## Development

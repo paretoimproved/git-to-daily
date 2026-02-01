@@ -6,33 +6,50 @@
 # Configuration: Auto-detects vault by checking:
 #   1. Parent directories for .obsidian folder (project inside vault)
 #   2. Sibling directories for .obsidian folder (project alongside vault)
-#   3. GIT_TO_DAILY_VAULT environment variable (fallback)
+#   3. Grandparent siblings with common vault names (~/Projects + ~/DevVault)
+#   4. GIT_TO_DAILY_VAULT environment variable (fallback)
+#   5. Common Windows locations ($HOME/DevVault, etc.)
 
 # Get the repository root
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 
 # Function to find vault by traversing up looking for .obsidian folder
+# Note: Uses prev_dir to prevent infinite loop on Windows where dirname "C:" returns "C:"
 find_vault_in_parents() {
     local dir="$1"
-    while [ "$dir" != "/" ] && [ "$dir" != "" ]; do
+    local prev_dir=""
+    while [ "$dir" != "/" ] && [ "$dir" != "" ] && [ "$dir" != "$prev_dir" ]; do
         if [ -d "$dir/.obsidian" ]; then
             echo "$dir"
             return 0
         fi
+        prev_dir="$dir"
         dir="$(dirname "$dir")"
     done
     return 1
 }
 
-# Function to find vault in sibling directories
+# Function to find vault in sibling directories (checks parent and grandparent levels)
 find_vault_in_siblings() {
     local parent_dir="$(dirname "$1")"
+    # Check siblings at parent level
     for sibling in "$parent_dir"/*; do
         if [ -d "$sibling/.obsidian" ]; then
             echo "$sibling"
             return 0
         fi
     done
+    # Check common vault names at grandparent level to avoid slow iteration
+    # This handles: ~/Projects/myrepo + ~/DevVault (siblings under home)
+    local grandparent_dir="$(dirname "$parent_dir")"
+    if [ "$grandparent_dir" != "/" ] && [ "$grandparent_dir" != "" ]; then
+        for vault_name in DevVault Vault ObsidianVault Notes; do
+            if [ -d "$grandparent_dir/$vault_name/.obsidian" ]; then
+                echo "$grandparent_dir/$vault_name"
+                return 0
+            fi
+        done
+    fi
     return 1
 }
 
@@ -45,9 +62,19 @@ if [ -z "$VAULT_PATH" ]; then
     VAULT_PATH=$(find_vault_in_siblings "$REPO_ROOT")
 fi
 
-# Fall back to environment variable if auto-detect fails
+# 3. Fall back to environment variable if auto-detect fails
 if [ -z "$VAULT_PATH" ]; then
     VAULT_PATH="$GIT_TO_DAILY_VAULT"
+fi
+
+# 4. Windows fallback: check common locations if env var not available
+if [ -z "$VAULT_PATH" ]; then
+    for candidate in "$HOME/DevVault" "/c/Users/$USER/DevVault" "$USERPROFILE/DevVault"; do
+        if [ -d "$candidate/.obsidian" ]; then
+            VAULT_PATH="$candidate"
+            break
+        fi
+    done
 fi
 
 # Exit silently if no vault found

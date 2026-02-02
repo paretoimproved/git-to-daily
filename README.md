@@ -307,6 +307,36 @@ set GIT_TO_DAILY_VAULT=    # Windows cmd
 git config --unset core.hooksPath
 ```
 
+## Claude Code Integration
+
+git-to-daily includes a `/daily` slash command for Claude Code users.
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `/daily` | Regenerate today's daily log |
+| `/daily view` | Display today's log content |
+| `/daily notes <text>` | Add session notes to today's log |
+| `/daily summary` | Generate weekly/monthly summaries on demand |
+
+### Setup
+
+The command is automatically available when working in a project that has git-to-daily installed. For global access, copy the command to your personal Claude config:
+
+```bash
+cp .claude/commands/daily.md ~/.claude/commands/
+```
+
+### Usage Examples
+
+```
+/daily              # Regenerate today's log after manual changes
+/daily view         # Quick peek at what you've done today
+/daily notes "Fixed the auth bug, needs testing"
+/daily summary      # Force generate weekly/monthly summaries
+```
+
 ## Weekly & Monthly Summaries
 
 git-to-daily automatically generates weekly and monthly summary logs when calendar periods change.

@@ -1,28 +1,43 @@
 {
   "name": "git-to-daily",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "CLI tool that generates Obsidian daily logs from git commits",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "git-to-daily": "./dist/index.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "test": "vitest",
-    "prepare": "git config core.hooksPath .githooks",
+    "prepublishOnly": "npm run build && npm test",
     "hooks:install": "git config core.hooksPath .githooks && echo Hooks installed! Set GIT_TO_DAILY_VAULT environment variable to enable."
   },
   "keywords": [
     "git",
     "obsidian",
     "daily-log",
-    "cli"
+    "cli",
+    "developer-tools",
+    "productivity"
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paretoimproved/git-to-daily.git"
+  },
+  "homepage": "https://github.com/paretoimproved/git-to-daily#readme",
+  "bugs": {
+    "url": "https://github.com/paretoimproved/git-to-daily/issues"
+  },
   "dependencies": {
     "commander": "^12.0.0",
     "simple-git": "^3.22.0"

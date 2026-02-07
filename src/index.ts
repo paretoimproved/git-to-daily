@@ -30,6 +30,9 @@ import {
   generateWeeklyLog,
   generateMonthlyLog,
 } from './summary-generator.js'
+import { loadConfig } from './config.js'
+import { runInit } from './init.js'
+import { runStatus } from './status.js'
 import type { Config } from './types.js'
 
 const program = new Command()
@@ -40,19 +43,56 @@ program
   .version('0.1.0')
 
 program
+  .command('init')
+  .description('Set up git-to-daily: detect vault, save config, install git hook')
+  .option('--vault <path>', 'Path to your Obsidian vault (skip auto-detection)')
+  .option('--local', 'Install hook in current repo only (instead of global)')
+  .action(async (options) => {
+    try {
+      await runInit(options)
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error: ${error.message}`)
+      } else {
+        console.error('An unknown error occurred')
+      }
+      process.exit(1)
+    }
+  })
+
+program
+  .command('status')
+  .description('Show current configuration and setup status')
+  .action(() => {
+    try {
+      runStatus()
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(`Error: ${error.message}`)
+      } else {
+        console.error('An unknown error occurred')
+      }
+      process.exit(1)
+    }
+  })
+
+program
   .command('generate')
   .description('Generate a daily log from today\'s git commits')
-  .requiredOption('--vault <path>', 'Path to your Obsidian vault')
+  .option('--vault <path>', 'Path to your Obsidian vault')
   .option('--project <name>', 'Project name (defaults to current directory name)')
   .action(async (options) => {
     try {
-      // Build config from CLI options
+      // Resolve vault path: flag > config > env var > error
+      const vaultPath = resolveVaultPath(options.vault)
+
+      // Build config from resolved values
       const config: Config = {
-        vaultPath: options.vault,
+        vaultPath,
         projectName: options.project,
       }
 
-      console.log('🔍 Fetching today\'s commits...')
+      console.log('Fetching today\'s commits...')
 
       // Get commits from git parser (Agent 2's code)
       const localCommits = await getTodaysCommits()
@@ -73,46 +113,77 @@ program
         ).length
 
         if (newCommitCount === 0) {
-          console.log('📝 No new commits to add.')
-          console.log('💡 Daily log is already up to date!')
+          console.log('No new commits to add.')
+          console.log('Daily log is already up to date!')
           process.exit(0)
         }
 
         // Merge local commits with any commits from existing log
         // (preserves commits from other machines)
         commits = mergeCommits(localCommits, existingContent)
-        console.log(`✅ Found ${newCommitCount} new commit${newCommitCount > 1 ? 's' : ''} (${commits.length} total)`)
+        console.log(`Found ${newCommitCount} new commit${newCommitCount > 1 ? 's' : ''} (${commits.length} total)`)
       } else {
         if (localCommits.length === 0) {
-          console.log('📝 No commits found for today.')
-          console.log('💡 Make some commits and try again!')
+          console.log('No commits found for today.')
+          console.log('Make some commits and try again!')
           process.exit(0)
         }
-        console.log(`✅ Found ${localCommits.length} commit${localCommits.length > 1 ? 's' : ''}`)
+        console.log(`Found ${localCommits.length} commit${localCommits.length > 1 ? 's' : ''}`)
       }
 
       // Generate markdown (Agent 1's generator)
-      console.log('📄 Generating daily log...')
+      console.log('Generating daily log...')
       const markdown = generateDailyLog(commits)
 
       // Write to vault (Agent 1's writer)
-      console.log('💾 Writing to vault...')
+      console.log('Writing to vault...')
       const filePath = await writeToVault(markdown, config)
 
-      console.log(`✨ Daily log ${existingContent ? 'updated' : 'created'}: ${filePath}`)
+      console.log(`Daily log ${existingContent ? 'updated' : 'created'}: ${filePath}`)
 
       // Check if we need to generate weekly/monthly summaries
       await generatePeriodSummaries(config)
 
     } catch (error) {
       if (error instanceof Error) {
-        console.error(`❌ Error: ${error.message}`)
+        console.error(`Error: ${error.message}`)
       } else {
-        console.error('❌ An unknown error occurred')
+        console.error('An unknown error occurred')
       }
       process.exit(1)
     }
   })
+
+/**
+ * Resolves vault path from multiple sources in priority order:
+ * CLI flag > config file > GIT_TO_DAILY_VAULT env var > error
+ */
+function resolveVaultPath(flagValue?: string): string {
+  // 1. CLI flag
+  if (flagValue) {
+    return flagValue
+  }
+
+  // 2. Config file
+  const config = loadConfig()
+  if (config?.vaultPath) {
+    return config.vaultPath
+  }
+
+  // 3. Environment variable
+  const envValue = process.env.GIT_TO_DAILY_VAULT
+  if (envValue) {
+    return envValue
+  }
+
+  // 4. Error with helpful message
+  console.error('Error: No vault path configured.\n')
+  console.error('Set it up with one of:')
+  console.error('  git-to-daily init              (recommended)')
+  console.error('  git-to-daily generate --vault <path>')
+  console.error('  export GIT_TO_DAILY_VAULT=<path>')
+  process.exit(1)
+}
 
 /**
  * Checks for period boundaries and generates weekly/monthly summaries
@@ -142,7 +213,7 @@ async function tryGenerateWeeklySummary(config: Config, today: Date): Promise<vo
     return
   }
 
-  console.log('\n📅 New week detected! Checking for last week\'s activity...')
+  console.log('\nNew week detected! Checking for last week\'s activity...')
 
   // Read daily logs from last week
   const summaries = await readDailyLogsInRange(config, start, end)
@@ -158,7 +229,7 @@ async function tryGenerateWeeklySummary(config: Config, today: Date): Promise<vo
   const markdown = generateWeeklyLog(weeklyData)
   const filePath = await writeWeeklyLog(markdown, config, start)
 
-  console.log(`📊 Weekly summary created: ${filePath}`)
+  console.log(`Weekly summary created: ${filePath}`)
 }
 
 /**
@@ -172,7 +243,7 @@ async function tryGenerateMonthlySummary(config: Config, today: Date): Promise<v
     return
   }
 
-  console.log('\n📆 New month detected! Checking for last month\'s activity...')
+  console.log('\nNew month detected! Checking for last month\'s activity...')
 
   // Read daily logs from last month
   const summaries = await readDailyLogsInRange(config, start, end)
@@ -188,7 +259,7 @@ async function tryGenerateMonthlySummary(config: Config, today: Date): Promise<v
   const markdown = generateMonthlyLog(monthlyData)
   const filePath = await writeMonthlyLog(markdown, config, start)
 
-  console.log(`📈 Monthly summary created: ${filePath}`)
+  console.log(`Monthly summary created: ${filePath}`)
 }
 
 // Parse arguments

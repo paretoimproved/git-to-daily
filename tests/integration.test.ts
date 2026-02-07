@@ -91,7 +91,7 @@ describe('Integration: Full CLI Flow', () => {
 
     const markdown = generateDailyLog(commits)
     expect(markdown).toContain('No activity')
-    expect(markdown).toContain('Duration: N/A')
+    expect(markdown).toContain('**Duration**: N/A')
 
     const filePath = await writeToVault(markdown, {
       vaultPath: tempVaultPath,
@@ -264,7 +264,7 @@ describe('Integration: Full CLI Flow', () => {
     ]
 
     const markdown = generateDailyLog(commits)
-    expect(markdown).toContain('Focus Area: Testing')
+    expect(markdown).toContain('**Focus Area**: Testing')
 
     const filePath = await writeToVault(markdown, {
       vaultPath: tempVaultPath,
@@ -272,7 +272,7 @@ describe('Integration: Full CLI Flow', () => {
     })
 
     const fileContent = await fs.readFile(filePath, 'utf-8')
-    expect(fileContent).toContain('Focus Area: Testing')
+    expect(fileContent).toContain('**Focus Area**: Testing')
   })
 })
 

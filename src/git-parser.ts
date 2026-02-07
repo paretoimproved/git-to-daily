@@ -86,8 +86,11 @@ async function getFilesChangedWithStatus(git: SimpleGit, commitHash: string): Pr
       const parts = line.split('\t')
       if (parts.length < 2) continue
 
-      const statusCode = parts[0].trim()
-      const filePath = parts[1].trim()
+      const statusCode = parts[0].trim().charAt(0)
+      // For renames (R), the new path is in parts[2]
+      const filePath = (statusCode === 'R' && parts.length >= 3)
+        ? parts[2].trim()
+        : parts[1].trim()
 
       let status: FileChange['status']
       if (statusCode === 'A') {

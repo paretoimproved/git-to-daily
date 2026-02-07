@@ -1,0 +1,10 @@
+src/
+tests/
+.githooks/
+.claude/
+*.md
+!README.md
+tsconfig.json
+vitest.config.ts
+examples/
+vault

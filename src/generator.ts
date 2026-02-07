@@ -14,7 +14,9 @@ import type { Commit, FileChange } from './types.js'
  * @returns Formatted markdown string
  */
 export function generateDailyLog(commits: Commit[]): string {
-  const date = formatDate(new Date())
+  const date = commits.length > 0
+    ? formatDate(commits[0].timestamp)
+    : formatDate(new Date())
   const duration = calculateDuration(commits)
   const focusArea = inferFocusArea(commits)
 
